@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 from bottle import route, run, template, static_file, request, response, get
 import feedparser
@@ -34,6 +35,7 @@ def get_feeds():
 
 @route("/api/headlines", method="GET")
 def update_headlines():
+
     # Handle explicit feed selection using the "feed" query string parameter.
     # For example: http://localhost:7000/api/headlines?feed=3 will select the "Wired Magazine" RSS feed.
     desired_rss_feed = request.query.get("feed", "1")
@@ -50,7 +52,17 @@ def update_headlines():
                     for entry in feed["entries"]
                 ]
 
-    return json.dumps({"headlines": headlines})
+    # Let the client know the last time the page was refreshed based on datetime value stored in a cookie.
+    visited_at = request.get_cookie("visited_at", default=str(datetime.now()))
+    # Update the cookie the current datetime.
+    response.set_cookie("visited_at", str(datetime.now()), max_age=3600 * 24)
+
+    response_dict = {
+        "headlines": headlines,
+        "last_visited": visited_at
+    }
+
+    return json.dumps(response_dict)
 
 
 ####
